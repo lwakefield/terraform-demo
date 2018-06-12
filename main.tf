@@ -10,7 +10,8 @@ resource "digitalocean_ssh_key" "default" {
 }
 
 resource "digitalocean_droplet" "server" {
-  name = "server"
+  count = 3
+  name = "server-${count.index}"
   region = "nyc1"
   size = "1gb"
   image = "docker-16-04"
