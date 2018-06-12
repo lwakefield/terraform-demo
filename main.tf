@@ -25,6 +25,17 @@ resource "digitalocean_droplet" "server" {
   }
 }
 
+resource "digitalocean_droplet" "jumpserver" {
+  name = "jump-server"
+  region = "nyc1"
+  size = "1gb"
+  image = "ubuntu-16-04-x64"
+  ssh_keys = [
+    "${digitalocean_ssh_key.default.id}"
+  ]
+  private_networking = true
+}
+
 resource "digitalocean_loadbalancer" "public" {
   name = "public-loadbalancer"
   region = "nyc1"
@@ -53,6 +64,11 @@ resource "digitalocean_firewall" "firewall" {
       protocol = "tcp"
       port_range = "80"
       source_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
+    },
+    {
+      protocol = "tcp"
+      port_range = "22"
+      source_droplet_ids = ["${digitalocean_droplet.jumpserver.id}"]
     }
   ]
   outbound_rule = [
@@ -60,6 +76,11 @@ resource "digitalocean_firewall" "firewall" {
       protocol = "tcp"
       port_range = "80"
       destination_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
+    },
+    {
+      protocol = "tcp"
+      port_range = "22"
+      destination_droplet_ids = ["${digitalocean_droplet.jumpserver.id}"]
     }
   ]
 }
