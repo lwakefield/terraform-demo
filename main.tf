@@ -39,7 +39,27 @@ resource "digitalocean_loadbalancer" "public" {
   }
 
   healthcheck {
-    port = 22
+    port = 80
     protocol = "tcp"
   }
+}
+
+resource "digitalocean_firewall" "firewall" {
+  name = "server-firewall"
+  droplet_ids = ["${digitalocean_droplet.server.*.id}"]
+
+  inbound_rule = [
+    {
+      protocol = "tcp"
+      port_range = "80"
+      source_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
+    }
+  ]
+  outbound_rule = [
+    {
+      protocol = "tcp"
+      port_range = "80"
+      destination_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
+    }
+  ]
 }
