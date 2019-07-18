@@ -17,7 +17,7 @@ resource "digitalocean_droplet" "web" {
   size = "1gb"
   image = "docker-18-04"
   ssh_keys = [ "${digitalocean_ssh_key.default.id}" ]
-  # private_networking = true
+  private_networking = true
   tags = [ "demo-web", "demo-web-${count.index}" ]
 
   connection {
@@ -25,6 +25,8 @@ resource "digitalocean_droplet" "web" {
     user        = "root"
     host        = self.ipv4_address
     private_key = "${file("./id_rsa")}"
+
+    bastion_host = "${digitalocean_droplet.jumpserver.ipv4_address}"
   }
 
   provisioner "remote-exec" {
@@ -32,14 +34,14 @@ resource "digitalocean_droplet" "web" {
   }
 }
 
-# resource "digitalocean_droplet" "jumpserver" {
-#   name = "jump-server"
-#   region = "nyc1"
-#   size = "1gb"
-#   image = "ubuntu-18-04"
-#   ssh_keys = [ "${digitalocean_ssh_key.default.id}" ]
-#   private_networking = true
-# }
+resource "digitalocean_droplet" "jumpserver" {
+  name = "jump-server"
+  region = "nyc1"
+  size = "1gb"
+  image = "ubuntu-18-10-x64"
+  ssh_keys = [ "${digitalocean_ssh_key.default.id}" ]
+  private_networking = true
+}
 
 resource "digitalocean_loadbalancer" "public" {
   name = "public-loadbalancer"
@@ -60,28 +62,18 @@ resource "digitalocean_loadbalancer" "public" {
   }
 }
 
-# resource "digitalocean_firewall" "firewall" {
-#   name = "server-firewall"
-#   tags = [ "demo-web" ]
+resource "digitalocean_firewall" "firewall" {
+  name = "server-firewall"
+  tags = [ "demo-web" ]
 
-#   inbound_rule {
-#     protocol = "tcp"
-#     port_range = "80"
-#     source_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
-#   }
-#   inbound_rule {
-#     protocol = "tcp"
-#     port_range = "22"
-#     source_droplet_ids = ["${digitalocean_droplet.jumpserver.id}"]
-#   }
-#   outbound_rule {
-#     protocol = "tcp"
-#     port_range = "80"
-#     destination_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
-#   }
-#   outbound_rule {
-#     protocol = "tcp"
-#     port_range = "22"
-#     destination_droplet_ids = ["${digitalocean_droplet.jumpserver.id}"]
-#   }
-# }
+  inbound_rule {
+    protocol = "tcp"
+    port_range = "80"
+    source_load_balancer_uids = ["${digitalocean_loadbalancer.public.id}"]
+  }
+  inbound_rule {
+    protocol = "tcp"
+    port_range = "22"
+    source_droplet_ids = ["${digitalocean_droplet.jumpserver.id}"]
+  }
+}
